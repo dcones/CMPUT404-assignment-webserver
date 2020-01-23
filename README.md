@@ -27,4 +27,4 @@ compatible) http://docs.python.org/2/library/socketserver.html
 
 Collaboration
 =============
-Warren L. Thomas (wlt) - discussion about parsing
+Warren L. Thomas (wlt)
