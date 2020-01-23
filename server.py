@@ -30,25 +30,38 @@ class MyWebServer(socketserver.BaseRequestHandler):
 
     def handle(self):
         self.data = self.request.recv(1024).decode().strip().split()
-        if self.data[0] != 'GET':
-            return self.request.sendall(bytearray("405 Method Not Allowed", "utf-8"))
-        self.GET()
+        if self.data and self.data[0] == 'GET':
+            response = self.GET()
+        else:
+            response = "405 Method Not Allowed"
+        response = "HTTP/1.1 "+response+"\r\n\r\n"
+        return self.request.sendall(response.encode())
 
     def GET(self):
-        if not self.data[1].startswith("/www/"):
-            return self.request.sendall(bytearray("403 Forbidden", "utf-8"))
+        if self.data[1].endswith("/"):
+            self.data[1] += "index.html"
+
         try:
-            # import pdb;pdb.set_trace()
-            with open("."+self.data[1], "rb") as file:
+            if ".." in self.data[1]:
+                raise FileNotFoundError
+            prefix = "."
+            if not self.data[1].startswith("/www"):
+                prefix += "/www"
+            with open(prefix+self.data[1], "r") as file:
                 file_content = file.read()
-                message = """HTTP/1.1 200 OK\r
-                            Content-Type: text/html\r
-                            Content-Length: {}\r
-                            \r\n""".format(len(file_content)).encode()
-                self.request.sendall(message)
-                self.request.sendall(file_content)
+        except IsADirectoryError:
+            return "301 Moved Permanently\r\nLocation: {}".format(self.data[1]+"/")
+        except FileNotFoundError:
+            return "404 Not Found"
         except Exception as e:
-            print(e)
+            return "400 Bad Request"
+        else:
+            try:
+                file_type = self.data[1].rsplit(".",1)[1]
+            except:
+                file_type = "plain"
+            header = "200 OK\r\nContent-Type: text/{}\r\nContent-Length: {}".format(file_type,len(file_content))
+            return header + "\r\n\r\n" + file_content
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
@@ -56,7 +69,4 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     # Create the server, binding to localhost on port 8080
     server = socketserver.TCPServer((HOST, PORT), MyWebServer)
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
     server.serve_forever()
