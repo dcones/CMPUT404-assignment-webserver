@@ -1,5 +1,5 @@
 #  coding: utf-8
-import socketserver
+import socketserver, re
 
 # Copyright 2013 Daniel Cones
 #
@@ -37,12 +37,25 @@ class MyWebServer(socketserver.BaseRequestHandler):
         response = "HTTP/1.1 "+response+"\r\n\r\n"
         return self.request.sendall(response.encode())
 
+    def is_hack_attempt_gasp(self,path):
+        result = re.findall("\/[^\/]+", "/"+path)
+        counter = 0
+        import pdb; pdb.set_trace()
+        for directory in result:
+            if directory == "/..":
+                counter -= 1
+            else:
+                counter += 1
+            if counter == -1:
+                return True
+        return False
+
     def GET(self):
         if self.data[1].endswith("/"):
             self.data[1] += "index.html"
 
         try:
-            if ".." in self.data[1]:
+            if self.is_hack_attempt_gasp(self.data[1]):
                 raise FileNotFoundError
             prefix = "."
             if not self.data[1].startswith("/www"):
