@@ -40,10 +40,11 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def is_hack_attempt_gasp(self,path):
         result = re.findall("\/[^\/]+", "/"+path)
         counter = 0
-        import pdb; pdb.set_trace()
         for directory in result:
             if directory == "/..":
                 counter -= 1
+            elif directory == "/.":
+                pass
             else:
                 counter += 1
             if counter == -1:
